@@ -90,8 +90,6 @@ itself.
 
 ```
 swap-manager.plg                  installer manifest (downloads files/ from the version tag)
-plugins/swap-manager.xml          Community Applications plugin template
-ca_profile.xml                    Community Applications repository profile
 icon.png                          icon for Community Applications
 tools/update-sha256.sh            release helper: SHA256 of every downloaded file into the plg
 files/README.md                   plugin description (shown in the plugin manager card)
@@ -129,6 +127,10 @@ without network. History and flags live in RAM (`/var/lib/swap-manager/`).
 2. Run `tools/update-sha256.sh` - it writes the SHA256 of every downloaded file into the plg.
 3. Commit, push, and push a git tag named exactly like the version (e.g. `2026.10.28`):
    the plg downloads its files from that tag, so an update never mixes files of two versions.
+
+The Community Applications template is not in this repository: it lives in
+[sognix/unraid-templates](https://github.com/sognix/unraid-templates) (`plugins/swap-manager.xml`).
+Its `PluginURL` must stay identical to `pluginURL` in `swap-manager.plg`.
 
 ## License
 
