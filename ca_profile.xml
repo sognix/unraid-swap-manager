@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<CommunityApplications>
+  <Profile>Swap Manager for Unraid: create and manage a swapfile (or a ZFS zvol) from the WebUI, with autostart at array start, automatic swapoff before array stop and an optional swap usage history. The plugin template is in plugins/. Support via GitHub issues: https://github.com/sognix/unraid-swap-manager/issues</Profile>
+  <Icon>https://raw.githubusercontent.com/sognix/unraid-swap-manager/main/icon.png</Icon>
+  <WebPage>https://github.com/sognix/unraid-swap-manager</WebPage>
+</CommunityApplications>

@@ -1,0 +1,5 @@
+#!/bin/bash
+# emhttpd event hook: 'disks_mounted' - fires after the array has mounted the disks/pools.
+# Enables swap when autostart is on. Fast by design: swapon is instant, so this never
+# blocks emhttpd (only swapoff at array stop can take long - handled by its own hook).
+exec /usr/local/emhttp/plugins/swap-manager/scripts/swapctl.sh autostart

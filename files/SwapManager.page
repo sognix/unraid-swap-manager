@@ -1,0 +1,289 @@
+Menu="Utilities"
+Title="Swap Manager"
+Icon="icon-nvme"
+Tag="icon-nvme"
+---
+<?PHP
+$plugin = 'swap-manager';
+$cfg = parse_plugin_cfg($plugin);   // default.cfg + /boot/config/plugins/swap-manager/swap-manager.cfg
+$h = fn($k) => htmlspecialchars($cfg[$k] ?? '', ENT_QUOTES);
+?>
+<form markdown="1" method="POST" action="/update.php" target="progressFrame">
+<input type="hidden" name="#file" value="swap-manager/swap-manager.cfg">
+
+## General
+
+_(Autostart)_:
+: <select name="autostart">
+  <?=mk_option($cfg['autostart'], 'no', _('No'))?>
+  <?=mk_option($cfg['autostart'], 'yes', _('Yes'))?>
+  </select>
+
+> When enabled, swap is activated automatically once the array has mounted the
+> pools. Pressing 'Disable' pauses this until you press 'Enable' again or the
+> server reboots.
+
+_(Notify info messages)_:
+: <select name="notify_info">
+  <?=mk_option($cfg['notify_info'], 'no', _('No'))?>
+  <?=mk_option($cfg['notify_info'], 'yes', _('Yes'))?>
+  </select>
+
+> When enabled, the Unraid notification center shows informational messages from this plugin. Warnings and errors are always shown, regardless of this setting.
+
+_(Show on dashboard)_:
+: <select name="dashboard">
+  <?=mk_option($cfg['dashboard'], 'yes', _('Yes'))?>
+  <?=mk_option($cfg['dashboard'], 'no', _('No'))?>
+  </select>
+
+> When enabled, the swap tile is shown on the dashboard (usage ring, or the history
+> graph when the usage history is enabled under History Settings). Reload the
+> dashboard after changing this setting.
+
+<input type="submit" name="#default" value="_(Default)_">
+: <input type="submit" name="#apply" value="_(Apply)_" disabled>
+
+## Swap Settings
+
+<!-- '#' field names: /update.php ignores them, so Apply/Default never touch the swap
+     settings. Only 'Create swapfile' stores them (exec.php) - the cfg always describes the
+     swapfile that really exists. -->
+
+_(Size in GB, 1-128)_:
+: <input type="number" name="#size_gb" min="1" max="128" value="<?=$h('size_gb')?>">
+
+> Size of the swapfile in gigabytes. There is no resize: disable swap, change the
+> size and create it again - the old swapfile gets replaced. Creating writes the
+> full size to the disk, so make sure the pool has enough free space.
+
+_(Path)_:
+: <input type="text" name="#location" class="narrow" value="<?=$h('location')?>" placeholder="/mnt/cache/system/swap">
+
+> Directory that holds the swapfile, for example /mnt/cache/system/swap. Use a
+> direct pool path and never /mnt/user (FUSE overlay) or network shares: the
+> kernel refuses swapfiles there. The pool must be mounted and must match the
+> selected filesystem, otherwise creation refuses. The share must not have a mover
+> action that moves files off this disk (the mover would move the active swapfile);
+> such locations are refused. A hidden top-level directory such as
+> /mnt/cache/.swap is never touched by the mover.
+
+_(File name)_:
+: <input type="text" name="#name" value="<?=$h('name')?>">
+
+> File name of the swapfile inside the path. Only letters, digits, dot, dash
+> and underscore are allowed.
+
+_(Filesystem)_:
+: <select name="#fs">
+  <?=mk_option($cfg['fs'], 'auto', _('auto (detected at the path)'))?>
+  <?=mk_option($cfg['fs'], 'zfs', 'zfs (zvol)')?>
+  </select>
+
+> auto detects the filesystem really mounted under the path (xfs/ext4:
+> swapfile directly; btrfs: only single device and nocow). Swapfiles on
+> other filesystems (FAT, tmpfs, ...) are refused. zfs: swap files are not
+> supported, the plugin creates a zvol (block device) instead.
+
+_(ZFS pool, only for zfs)_:
+: <input type="text" name="#zpool" value="<?=$h('zpool')?>">
+
+> Name of the ZFS pool that holds the zvol. Only used when the filesystem is
+> zfs. Note: per the OpenZFS FAQ even a zvol as swap is not deadlock-safe on
+> Linux, so prefer an xfs pool where possible.
+
+_(vm.swappiness, 0-200)_:
+: <input type="number" name="#swappiness" class="narrow" min="0" max="200" value="<?=$h('swappiness')?>">
+
+> Kernel setting vm.swappiness (0-200): how eagerly the kernel moves memory
+> pages to swap. A low value like 10 keeps swap as an emergency buffer, higher
+> values swap out more aggressively. The buttons below the field reset it to
+> the default (10) or save and apply it immediately. The value is set whenever
+> this plugin enables swap.
+
+<input type="button" value="_(Default)_" onclick="swapSwappinessDefault()">
+: <input type="button" value="_(Save swappiness)_" onclick="swapSwappiness()">
+
+_(Binding)_:
+: <select name="#bind_mode">
+  <?=mk_option($cfg['bind_mode'], 'direct', _('direct (recommended)'))?>
+  <?=mk_option($cfg['bind_mode'], 'loop', _('loop device (workaround, not recommended)'))?>
+  </select>
+
+> direct is the recommended path. loop is only for btrfs multi-device/RAID
+> pools where the kernel refuses a direct swapfile; it bypasses the check but
+> not the reason behind it and carries a stall risk under memory pressure -
+> see the full warning below.
+
+## History Settings
+
+<!-- '#' field names as above: Apply/Default of General never touch them, only the
+     buttons of this section store them (exec.php, action=history_settings) -->
+
+_(Usage history)_:
+: <select name="#history">
+  <?=mk_option($cfg['history'], 'yes', _('Yes'))?>
+  <?=mk_option($cfg['history'], 'no', _('No'))?>
+  </select>
+
+> When enabled, a background sampler records the swap usage (in RAM, at most 24
+> hours; it starts over after a reboot). It is the system-wide swap usage of all
+> active swap devices (e.g. also a zram swap from another plugin), not only the
+> swapfile of this plugin; the same applies to the dashboard ring. The graph below and the dashboard tile
+> show it; the dashboard then shows the graph instead of the usage ring (reload
+> the dashboard after changing this). Disabling stops the sampler and deletes the
+> recorded history.
+
+_(Sampling interval in seconds, min. 5 seconds)_:
+: <input type="number" name="#history_interval" class="narrow" min="5" step="1" value="<?=$h('history_interval')?>">
+
+> How often the swap usage is sampled. Smaller values give a finer graph for short
+> ranges (5 minutes at 30 s = 10 points), larger values cost less.
+
+_(Graph range)_:
+: <select name="#history_range">
+  <?=mk_option($cfg['history_range'], '300', _('5 minutes'))?>
+  <?=mk_option($cfg['history_range'], '3600', _('1 hour'))?>
+  <?=mk_option($cfg['history_range'], '86400', _('24 hours'))?>
+  </select>
+
+> Time range shown by the graph below and by the dashboard tile. Long ranges show
+> the peak per point, so short spikes stay visible.
+
+> The buttons below reset the history fields to their defaults or save and apply
+> them immediately (the sampler is restarted with the new interval).
+
+<input type="button" value="_(Default)_" onclick="swapHistoryDefault()">
+: <input type="button" value="_(Save history settings)_" onclick="swapHistorySave()">
+</form>
+
+<div style="text-align:center; margin:12px 0;">
+<input type="button" id="btn-create" value="_(Create swapfile)_" onclick="swapAction('create')">
+<input type="button" id="btn-on" value="_(Enable)_" onclick="swapAction('on')" disabled>
+<input type="button" id="btn-off" value="_(Disable)_" onclick="swapAction('off')" disabled>
+<input type="button" id="btn-delete" value="_(Delete swapfile)_" onclick="swapAction('delete')" disabled>
+<p id="swapmsg" style="font-size:2.5rem; font-weight:600; margin:12px 0 0; text-align:center">&nbsp;</p>
+</div>
+
+<!-- always rendered, hidden while the history is off: Save shows/hides it without a reload -->
+<div id="swaphist" style="margin:12px 0;<?=($cfg['history'] ?? 'yes') === 'yes' ? '' : ' display:none;'?>">
+<strong>_(Swap usage history)_</strong>
+<div id="swaphistchart" style="margin-top:6px;"></div>
+<div style="font-size:0.9em; opacity:0.7;">_(Sampled every)_ <span id="swaphistint"><?=$h('history_interval')?></span> _(seconds, kept in RAM - the history starts over after a reboot.)_</div>
+</div>
+
+<div style="margin:12px 0 0;"><strong>_(Status and log)_</strong></div>
+<pre id="swapstatus" style="margin-top:6px;">...</pre>
+
+<div id="loopwarn" style="display:none; border:1px solid #c0392b; padding:8px; margin:8px 0;">
+<pre>⚠️ Warning: loop mode (not recommended)
+
+You chose loop mode for a swapfile on btrfs (e.g. on a RAID1 cache).
+The kernel refuses a direct swapfile there because swap needs a fixed
+block mapping, which btrfs cannot guarantee with several devices or a
+RAID data profile ("swapfile must have single data profile" in dmesg).
+Loop mode bypasses that check but does not remove its background, and it
+is neither tested nor supported:
+
+ - Writes go through the loop device and the btrfs write path. That path
+   can itself request memory under memory pressure.
+ - The stall risk sits exactly at the moment memory is needed.
+ - In the worst case the system locks up instead of relieving itself.
+
+Recommended alternatives: a single-device btrfs pool (nocow), an XFS pool,
+or a small dedicated SSD as its own pool.</pre>
+</div>
+
+<script src="/plugins/swap-manager/include/history.js"></script>
+<script>
+var swapAjax = '/plugins/swap-manager/include/exec.php';
+var swapRunning = null; // action currently running in the background
+
+function swapStatus() { $.post(swapAjax, {action: 'status'}, function(r) { $('#swapstatus').text(r); }); }
+
+function swapMsg(text, ok) {
+  $('#swapmsg').text(text).css('color', ok === undefined ? '' : (ok ? '#2e7d32' : '#c0392b'));
+}
+
+function swapButtons(r) {
+  var active = /swap=active/.test(r), present = /file=present/.test(r);
+  $('#btn-on').prop('disabled', active || !present);
+  $('#btn-off').prop('disabled', !active);
+  $('#btn-delete').prop('disabled', active || !present);
+}
+
+// while an action runs, poll fast (2s); when the lock is free again the action is done
+function swapState() {
+  $.post(swapAjax, {action: 'state'}, function(r) {
+    swapButtons(r);
+    if (swapRunning) {
+      if (/busy=yes/.test(r)) { setTimeout(swapState, 2000); return; }
+      var a = swapRunning; swapRunning = null;
+      swapDone(a, r);
+    }
+  });
+}
+
+function swapDone(a, r) {
+  var active = /swap=active/.test(r), present = /file=present/.test(r);
+  if (a === 'create' && active) {
+    swapMsg('Swap active: deactivate swap, delete old swapfile, create new swapfile, activate swap', false);
+    return swapStatus();
+  }
+  if (a === 'create')  { if (present) swapMsg('Swapfile created', true); else swapMsg('Creating the swapfile failed - see log below', false); }
+  if (a === 'on')      { if (active) swapMsg('Swap enabled', true); else swapMsg('Enabling swap failed - see log below', false); }
+  if (a === 'off')     { if (!active) swapMsg('Swap disabled', true); else swapMsg('Disabling swap failed - see log below', false); }
+  if (a === 'delete')  { if (!present) swapMsg('Swapfile deleted', true); else swapMsg('Deleting the swapfile failed - see log below', false); }
+  swapStatus();
+}
+
+function swapSwappinessDefault() { $('input[name="#swappiness"]').val('10'); }
+function swapSwappiness() { // the swappiness field has its own save button - the only writer for this value
+  $.post(swapAjax, {action: 'swappiness', swappiness: $('input[name="#swappiness"]').val()},
+    function(r) { swapMsg(r, !/invalid|Error/i.test(r)); })
+   .fail(function(x) { swapMsg('Error ' + x.status, false); });
+}
+// the history fields have their own buttons, like swappiness: Default only fills in the
+// defaults, Save stores them and restarts/stops the sampler
+var swapHistDefaults = <?=json_encode(array_intersect_key(@parse_ini_file("/usr/local/emhttp/plugins/$plugin/default.cfg") ?: [], array_flip(['history','history_interval','history_range'])))?>;
+var swapHistGraph = null;
+function swapHistoryDefault() {
+  $.each(swapHistDefaults, function(k, v) { $('[name="#' + k + '"]').val(v); });
+}
+function swapHistorySave() {
+  var data = {action: 'history_settings'};
+  ['history', 'history_interval', 'history_range'].forEach(function(k) { data[k] = $('[name="#' + k + '"]').val(); });
+  $.post(swapAjax, data, function(r) {
+    swapMsg(r, true);
+    $('#swaphistint').text(data.history_interval);
+    $('#swaphist').toggle(data.history === 'yes');
+    if (data.history === 'yes') {
+      if (swapHistGraph) swapHistGraph.range(+data.history_range);
+      else swapHistGraph = swapHistory('#swaphistchart', {height: 160, range: +data.history_range});
+    }
+  }).fail(function(x) { swapMsg(x.responseText || 'Error ' + x.status, false); });
+}
+function swapAction(a) {
+  var data = {action: a};
+  if (a === 'create') { // create is coupled to the swap fields: send the values shown on the page
+    ['size_gb','location','name','fs','zpool','bind_mode'].forEach(function(k) {
+      var el = $('[name="#'+k+'"]');
+      if (el.length) data[k] = el.val();
+    });
+    swapMsg('Creating the swapfile - this can take a while...');
+  } else if (a === 'on') swapMsg('Enabling swap...');
+  else if (a === 'off') swapMsg('Disabling swap - with used swap this can take minutes...');
+  else swapMsg('Deleting the swapfile...');
+  swapRunning = a;
+  $.post(swapAjax, data, function() { setTimeout(swapState, 1000); })
+   .fail(function(x) { swapRunning = null; swapMsg('Error ' + x.status, false); });
+}
+$(function() {
+  var sel = $('select[name="#bind_mode"]');
+  function toggleWarn() { $('#loopwarn').toggle(sel.val() === 'loop'); }
+  sel.on('change', toggleWarn); toggleWarn();
+  swapStatus(); setInterval(swapStatus, 5000);
+  swapState(); setInterval(function() { if (!swapRunning) swapState(); }, 5000);
+  if ($('#swaphist').is(':visible')) swapHistGraph = swapHistory('#swaphistchart', {height: 160, range: <?=(int)($cfg['history_range'] ?? 300)?>});
+});
+</script>

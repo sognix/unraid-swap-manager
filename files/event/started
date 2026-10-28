@@ -1,0 +1,6 @@
+#!/bin/bash
+# emhttpd event hook: 'started' - end of the array start, after every 'disks_mounted' hook.
+# Second autostart attempt for swapfiles on Unassigned Devices: UD mounts its disks in its own
+# 'disks_mounted' hook, which runs after ours ("unassigned.devices" sorts after "swap-manager").
+# 'final': a swapfile that is still missing now gets reported.
+exec /usr/local/emhttp/plugins/swap-manager/scripts/swapctl.sh autostart final

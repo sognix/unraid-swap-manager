@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<Plugin>
+  <Name>Swap Manager</Name>
+  <Overview>Create and manage a swapfile from the Unraid WebUI: size, location, autostart, enable and disable. Works with swapfiles on xfs, ext4 and single-device btrfs pools or disks, and with a ZFS zvol. Swap follows the array lifecycle: it is enabled after the array start and disabled before the array stop, so a swapfile on a pool never blocks unmounting. Locations the mover would move are refused. Optional swap usage history graph on the settings page and the dashboard. Settings are under Settings - User Utilities - Swap Manager.</Overview>
+  <PluginURL>https://raw.githubusercontent.com/sognix/unraid-swap-manager/main/swap-manager.plg</PluginURL>
+  <PluginAuthor>sognix</PluginAuthor>
+  <Support>https://github.com/sognix/unraid-swap-manager/issues</Support>
+  <Project>https://github.com/sognix/unraid-swap-manager</Project>
+  <ReadMe>https://raw.githubusercontent.com/sognix/unraid-swap-manager/main/README.md</ReadMe>
+  <Category>Tools:System</Category>
+  <MinVer>6.12.0</MinVer>
+  <Icon>https://raw.githubusercontent.com/sognix/unraid-swap-manager/main/icon.png</Icon>
+  <License>GPLv2</License>
+</Plugin>

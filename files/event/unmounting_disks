@@ -1,0 +1,5 @@
+#!/bin/bash
+# emhttpd event hook: 'unmounting_disks' - fires right before the array unmounts the pools.
+# Safety net only: swap normally went off already in 'stopping_svcs'. Blocking by design:
+# emhttpd waits for this hook, so swapoff is done before the first umount.
+exec /usr/local/emhttp/plugins/swap-manager/scripts/swapctl.sh autostop

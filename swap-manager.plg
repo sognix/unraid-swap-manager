@@ -1,0 +1,101 @@
+<?xml version='1.0' standalone='yes'?>
+<!DOCTYPE PLUGIN [
+<!ENTITY name      "swap-manager">
+<!ENTITY author    "sognix">
+<!ENTITY version   "2026.10.28">
+<!ENTITY launch    "Settings/Utilities/SwapManager">
+<!ENTITY github    "https://github.com/sognix/unraid-swap-manager">
+<!ENTITY support   "https://github.com/sognix/unraid-swap-manager/issues">
+<!ENTITY pluginURL "https://raw.githubusercontent.com/sognix/unraid-swap-manager/main/swap-manager.plg">
+<!-- files come from the git tag of this version, never from main: raw.githubusercontent.com
+     caches for a few minutes, so main could deliver a mix of two versions during an update -->
+<!ENTITY raw       "https://raw.githubusercontent.com/sognix/unraid-swap-manager/&version;/files">
+<!ENTITY plugdir   "/usr/local/emhttp/plugins/&name;">
+<!ENTITY bootdir   "/boot/config/plugins/&name;">
+<!ENTITY cache     "/boot/config/plugins/&name;/&version;">
+]>
+<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;"
+        pluginURL="&pluginURL;" support="&support;" min="6.12.0" icon="icon-nvme">
+
+<CHANGES>
+###2026.10.28
+- Initial public release
+- Create, enable, disable and delete a swapfile (xfs, ext4, btrfs) or a ZFS zvol
+- Autostart after the array start, automatic swapoff before the array stop (also for swapfiles on Unassigned Devices)
+- Refuses locations the mover would move, keeps 10 GB free on the pool
+- Optional swap usage history (configurable sampling interval) on the settings page and the dashboard
+</CHANGES>
+
+<!-- 1. Clear the RAM side, delete old cache versions on /boot (runs on install, update AND every boot) -->
+<FILE Run="/bin/bash">
+<INLINE>
+mkdir -p &bootdir;
+rm -rf &plugdir;
+find &bootdir; -mindepth 1 -maxdepth 1 -type d ! -name '&version;' -exec rm -rf {} +
+exit 0
+</INLINE>
+</FILE>
+
+<!-- 2. Download to the USB stick (only if the file is not there yet) -->
+<FILE Name="&cache;/swapctl.sh" SHA256="246824cabc474d4db3bc47036292d4d840a916d2f46d80cfb430719340e306e6"><URL>&raw;/scripts/swapctl.sh</URL></FILE>
+<FILE Name="&cache;/sampler.sh" SHA256="e21cb9fa6bce34593fec780c3674e760c4741515a59fa80eb6ebdab1a06340a5"><URL>&raw;/scripts/sampler.sh</URL></FILE>
+<FILE Name="&cache;/utils.sh" SHA256="d3bbe33498127f25635f89c140f6805284a9e793c485b856bc7ae7e019056754"><URL>&raw;/scripts/lib/utils.sh</URL></FILE>
+<FILE Name="&cache;/swapon.sh" SHA256="d5093c6a575f55b65acd8329fb05d019dd1924db3db56c4f64d037faf7a1ed8c"><URL>&raw;/scripts/lib/swapon.sh</URL></FILE>
+<FILE Name="&cache;/swapoff.sh" SHA256="4256e0b615d56ab1fa70b8df91a96d9f26aba4d6c91efe2798d2685f0f0f273a"><URL>&raw;/scripts/lib/swapoff.sh</URL></FILE>
+<FILE Name="&cache;/exec.php" SHA256="d71185ebc4920c3a5724a4a183699200aec008d19928a4ed94b2fe3c840f92f1"><URL>&raw;/include/exec.php</URL></FILE>
+<FILE Name="&cache;/sparkline.php" SHA256="62a327cd7493286792d13c526bc7055b53fb59a641c053a148ccd4620179042f"><URL>&raw;/include/sparkline.php</URL></FILE>
+<FILE Name="&cache;/history.js" SHA256="a4d5c856befb7e8bd096e058eb9b968cb0f0f2c4c10f21c265fef7253f818b62"><URL>&raw;/include/history.js</URL></FILE>
+<FILE Name="&cache;/default.cfg" SHA256="2261242dfdec25b4528a8364e201a3277249b462e9a0cf82f5749dd26dcc4ac9"><URL>&raw;/default.cfg</URL></FILE>
+<FILE Name="&cache;/SwapManager.page" SHA256="664f528ba934dadaf87bc2d788a2f904d1cfdce585a6b46fc32be245becfaeed"><URL>&raw;/SwapManager.page</URL></FILE>
+<FILE Name="&cache;/SwapManagerDash.page" SHA256="23d55d4f49699cc87f8646600dc0f3bc25d088d8425d5ddd238cbd61bba78033"><URL>&raw;/SwapManagerDash.page</URL></FILE>
+<FILE Name="&cache;/disks_mounted" SHA256="05f6864f29b380b1247a8c6c7a09a47e1157503de978a194969d16244f75164a"><URL>&raw;/event/disks_mounted</URL></FILE>
+<FILE Name="&cache;/unmounting_disks" SHA256="06d89070db80a7522a5ca9b389aa1c710012f0e84652bd8adec37d6631f3129d"><URL>&raw;/event/unmounting_disks</URL></FILE>
+<FILE Name="&cache;/started" SHA256="aabb6559c627a15e80719fab5eed9a5523b838843bd81d08b9b1205d87ecd791"><URL>&raw;/event/started</URL></FILE>
+<FILE Name="&cache;/stopping_svcs" SHA256="35350c08a9a4f98d32ca7ecbe8cb690a575b97d2b8eb0ba22013b09c9ba17d12"><URL>&raw;/event/stopping_svcs</URL></FILE>
+<FILE Name="&cache;/README.md" SHA256="a2b79320f1f9829f32d36910028f64109a316a66a05055df170019455ecaa015"><URL>&raw;/README.md</URL></FILE>
+
+<!-- 3. Copy from the stick into RAM (so the plugin also boots without network) -->
+<FILE Name="&plugdir;/scripts/swapctl.sh" Mode="0755"><LOCAL>&cache;/swapctl.sh</LOCAL></FILE>
+<FILE Name="&plugdir;/scripts/sampler.sh" Mode="0755"><LOCAL>&cache;/sampler.sh</LOCAL></FILE>
+<FILE Name="&plugdir;/scripts/lib/utils.sh"><LOCAL>&cache;/utils.sh</LOCAL></FILE>
+<FILE Name="&plugdir;/scripts/lib/swapon.sh"><LOCAL>&cache;/swapon.sh</LOCAL></FILE>
+<FILE Name="&plugdir;/scripts/lib/swapoff.sh"><LOCAL>&cache;/swapoff.sh</LOCAL></FILE>
+<FILE Name="&plugdir;/include/exec.php"><LOCAL>&cache;/exec.php</LOCAL></FILE>
+<FILE Name="&plugdir;/include/sparkline.php"><LOCAL>&cache;/sparkline.php</LOCAL></FILE>
+<FILE Name="&plugdir;/include/history.js"><LOCAL>&cache;/history.js</LOCAL></FILE>
+<FILE Name="&plugdir;/default.cfg"><LOCAL>&cache;/default.cfg</LOCAL></FILE>
+<FILE Name="&plugdir;/SwapManager.page"><LOCAL>&cache;/SwapManager.page</LOCAL></FILE>
+<FILE Name="&plugdir;/SwapManagerDash.page"><LOCAL>&cache;/SwapManagerDash.page</LOCAL></FILE>
+<FILE Name="&plugdir;/event/disks_mounted" Mode="0755"><LOCAL>&cache;/disks_mounted</LOCAL></FILE>
+<FILE Name="&plugdir;/event/unmounting_disks" Mode="0755"><LOCAL>&cache;/unmounting_disks</LOCAL></FILE>
+<FILE Name="&plugdir;/event/started" Mode="0755"><LOCAL>&cache;/started</LOCAL></FILE>
+<FILE Name="&plugdir;/event/stopping_svcs" Mode="0755"><LOCAL>&cache;/stopping_svcs</LOCAL></FILE>
+<FILE Name="&plugdir;/README.md"><LOCAL>&cache;/README.md</LOCAL></FILE>
+
+<!-- 4. (Re)start the usage sampler for the history graph (only when history=yes). Restart on every install so an update
+        runs the new code. CDATA because of the redirects; entities are not expanded there -->
+<FILE Run="/bin/bash">
+<INLINE>
+<![CDATA[
+/usr/local/emhttp/plugins/swap-manager/scripts/swapctl.sh history
+exit 0
+]]>
+</INLINE>
+</FILE>
+
+<!-- 5. Uninstall: swap off (abort on failure - an orphaned active swapfile would hang the
+        array stop), cache gone. swap-manager.cfg and the swapfile itself deliberately stay -->
+<FILE Run="/bin/bash" Method="remove">
+<INLINE>
+<![CDATA[
+/usr/local/emhttp/plugins/swap-manager/scripts/swapctl.sh off || exit 1
+pid=$(cat /var/lib/swap-manager/sampler.pid 2>/dev/null)
+[ -n "$pid" ] && grep -qsF sampler.sh /proc/$pid/cmdline && kill $pid
+find /boot/config/plugins/swap-manager -mindepth 1 -maxdepth 1 -type d -exec rm -rf {} +
+rm -rf /usr/local/emhttp/plugins/swap-manager /var/lib/swap-manager
+exit 0
+]]>
+</INLINE>
+</FILE>
+
+</PLUGIN>

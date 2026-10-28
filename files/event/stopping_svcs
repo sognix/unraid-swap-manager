@@ -1,0 +1,6 @@
+#!/bin/bash
+# emhttpd event hook: 'stopping_svcs' - Docker and VMs are stopped, network services are next.
+# Swap goes off here, before Unassigned Devices unmounts its disks in this same event
+# ("unassigned.devices" sorts after "swap-manager"). Blocking by design: emhttpd waits.
+# 'unmounting_disks' runs autostop again as a safety net (a no-op when swap is already off).
+exec /usr/local/emhttp/plugins/swap-manager/scripts/swapctl.sh autostop

@@ -1,0 +1,56 @@
+Menu="Dashboard:0"
+Cond="version_compare(parse_ini_file('/etc/unraid-version')['version'],'6.11.9','>') && _var(parse_plugin_cfg('swap-manager'),'dashboard','yes')=='yes'"
+---
+<?PHP
+require_once '/usr/local/emhttp/plugins/swap-manager/include/sparkline.php';
+// history enabled: the graph replaces the usage ring (same graph as on the settings page)
+$cfg = swap_manager_cfg();
+$history = ($cfg['history'] ?? 'yes') === 'yes';
+$range = in_array($cfg['history_range'] ?? '', ['300', '3600', '86400'], true) ? (int)$cfg['history_range'] : 300;
+if ($history) {
+  $body = "<tr><td><div id=\"swapdashchart\"></div></td></tr>";
+} else {
+  $ring = swap_manager_ring(110);
+  $body = "<tr><td style=\"text-align:center\"><span id=\"swapring\">{$ring}</span></td></tr>";
+}
+$mytiles['swap-manager']['column2'] = <<<EOT
+<tbody title="_(Swap Manager)_">
+<tr>
+  <td>
+    <span class='tile-header'>
+      <span class='tile-header-left'>
+        <i class='icon-nvme f32'></i>
+        <div class='section'>
+          <h3 class='tile-header-main'>_(Swap)_</h3>
+        </div>
+      </span>
+      <span class='tile-header-right'>
+        <span class='tile-header-right-controls'>
+          <a href='/Dashboard/Settings/Utilities/SwapManager' title="_(Go to Swap Manager settings)_">
+            <i class='fa fa-fw fa-cog control'></i>
+          </a>
+        </span>
+      </span>
+    </span>
+  </td>
+</tr>
+{$body}
+</tbody>
+EOT;
+?>
+<?if ($history):?>
+<script src="/plugins/swap-manager/include/history.js"></script>
+<script>
+// range = cfg history_range (History Settings on the settings page)
+$(function() { swapHistory('#swapdashchart', {height: 140, range: <?=$range?>}); });
+</script>
+<?else:?>
+<script>
+// live update for the swap ring (same pattern as the GPU Statistics tiles)
+setInterval(function() {
+  $.post('/plugins/swap-manager/include/exec.php', {action: 'ring'}, function(r) {
+    if (r) $('#swapring').html(r);
+  });
+}, 5000);
+</script>
+<?endif;?>
