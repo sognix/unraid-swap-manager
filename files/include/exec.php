@@ -58,8 +58,10 @@ if ($a === 'status' || $a === 'state') {
 } elseif (in_array($a, ['create', 'on', 'off', 'delete'], true)) {
   if ($a === 'create') {
     // Create is coupled to the swap fields: always use the values shown on the page
-    // (swappiness is excluded - it has its own save button)
-    swap_cfg_write(array_intersect_key($_POST, array_flip(['size_gb','location','name','fs','zpool','bind_mode'])));
+    // (swappiness is excluded - it has its own save button). Not while swap is active: create
+    // refuses then, and the cfg must keep describing the swapfile that really is active.
+    exec(escapeshellarg($ctl) . ' recorded >/dev/null 2>&1', $o, $active);
+    if ($active !== 0) swap_cfg_write(array_intersect_key($_POST, array_flip(['size_gb','location','name','fs','zpool','bind_mode'])));
   }
   // dd and swapoff take minutes: start detached; the output shows up in the status afterwards.
   // The pending marker makes 'state' report busy until the script holds its lock.

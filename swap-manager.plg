@@ -24,6 +24,12 @@
 - Autostart after the array start, automatic swapoff before the array stop (also for swapfiles on Unassigned Devices)
 - Refuses locations the mover would move, keeps 10 GB free on the pool
 - Optional swap usage history (configurable sampling interval) on the settings page and the dashboard
+###2026.10.31
+- Settings: swap buttons moved to the end of Swap Settings, Default and Save swappiness in one row, Create, Enable, Disable and Delete in another
+- Settings: Default in Swap Settings now fills all fields of that section with their default values
+- Settings and dashboard: bar with the current swap usage below the history graph
+- Fix: Create while swap is active no longer changes the stored swap settings; before, Disable could get greyed out and a second swap could be enabled, which could hang the array stop
+- Fix: Enable is refused while a different swap of this plugin is active
 </CHANGES>
 
 <!-- 1. Clear the RAM side, delete old cache versions on /boot (runs on install, update AND every boot) -->
@@ -37,16 +43,16 @@ exit 0
 </FILE>
 
 <!-- 2. Download to the USB stick (only if the file is not there yet) -->
-<FILE Name="&cache;/swapctl.sh" SHA256="246824cabc474d4db3bc47036292d4d840a916d2f46d80cfb430719340e306e6"><URL>&raw;/scripts/swapctl.sh</URL></FILE>
+<FILE Name="&cache;/swapctl.sh" SHA256="c25e1eef57d73ea051611d058827bbb63d90117bee6003c3b4ac49cc7a8ce919"><URL>&raw;/scripts/swapctl.sh</URL></FILE>
 <FILE Name="&cache;/sampler.sh" SHA256="e21cb9fa6bce34593fec780c3674e760c4741515a59fa80eb6ebdab1a06340a5"><URL>&raw;/scripts/sampler.sh</URL></FILE>
 <FILE Name="&cache;/utils.sh" SHA256="d3bbe33498127f25635f89c140f6805284a9e793c485b856bc7ae7e019056754"><URL>&raw;/scripts/lib/utils.sh</URL></FILE>
-<FILE Name="&cache;/swapon.sh" SHA256="d5093c6a575f55b65acd8329fb05d019dd1924db3db56c4f64d037faf7a1ed8c"><URL>&raw;/scripts/lib/swapon.sh</URL></FILE>
+<FILE Name="&cache;/swapon.sh" SHA256="730449cf514a6bb2a2394e06caa111275ef6b83cc7dad5f659e7d09783d33a91"><URL>&raw;/scripts/lib/swapon.sh</URL></FILE>
 <FILE Name="&cache;/swapoff.sh" SHA256="4256e0b615d56ab1fa70b8df91a96d9f26aba4d6c91efe2798d2685f0f0f273a"><URL>&raw;/scripts/lib/swapoff.sh</URL></FILE>
-<FILE Name="&cache;/exec.php" SHA256="d71185ebc4920c3a5724a4a183699200aec008d19928a4ed94b2fe3c840f92f1"><URL>&raw;/include/exec.php</URL></FILE>
-<FILE Name="&cache;/sparkline.php" SHA256="62a327cd7493286792d13c526bc7055b53fb59a641c053a148ccd4620179042f"><URL>&raw;/include/sparkline.php</URL></FILE>
-<FILE Name="&cache;/history.js" SHA256="a4d5c856befb7e8bd096e058eb9b968cb0f0f2c4c10f21c265fef7253f818b62"><URL>&raw;/include/history.js</URL></FILE>
+<FILE Name="&cache;/exec.php" SHA256="319f8df622789e6cb5ebf12dba8e7949f936d2294798d5b2fc44508e7a92bdd7"><URL>&raw;/include/exec.php</URL></FILE>
+<FILE Name="&cache;/sparkline.php" SHA256="0a5dea04c8d9a0d2e29fdb47d8e96a2c7cb3110afd4708c716cda4a10c14c6ec"><URL>&raw;/include/sparkline.php</URL></FILE>
+<FILE Name="&cache;/history.js" SHA256="744ee735d61fdacad09dd03843606c0ceb0bab93f88ef143e75da6f6e458c0fc"><URL>&raw;/include/history.js</URL></FILE>
 <FILE Name="&cache;/default.cfg" SHA256="2261242dfdec25b4528a8364e201a3277249b462e9a0cf82f5749dd26dcc4ac9"><URL>&raw;/default.cfg</URL></FILE>
-<FILE Name="&cache;/SwapManager.page" SHA256="664f528ba934dadaf87bc2d788a2f904d1cfdce585a6b46fc32be245becfaeed"><URL>&raw;/SwapManager.page</URL></FILE>
+<FILE Name="&cache;/SwapManager.page" SHA256="fa1b23b0fabd6bbf0156287a0315bed000963e81ba95276f92ec8b51a61955fe"><URL>&raw;/SwapManager.page</URL></FILE>
 <FILE Name="&cache;/SwapManagerDash.page" SHA256="23d55d4f49699cc87f8646600dc0f3bc25d088d8425d5ddd238cbd61bba78033"><URL>&raw;/SwapManagerDash.page</URL></FILE>
 <FILE Name="&cache;/disks_mounted" SHA256="05f6864f29b380b1247a8c6c7a09a47e1157503de978a194969d16244f75164a"><URL>&raw;/event/disks_mounted</URL></FILE>
 <FILE Name="&cache;/unmounting_disks" SHA256="06d89070db80a7522a5ca9b389aa1c710012f0e84652bd8adec37d6631f3129d"><URL>&raw;/event/unmounting_disks</URL></FILE>

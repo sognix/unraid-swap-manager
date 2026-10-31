@@ -27,6 +27,7 @@ Settings → User Utilities → Swap Manager: set size/path/filesystem, "Create 
 kept in RAM) is configured under History Settings: on/off, sampling interval (seconds,
 minimum 5, default 30) and the range the graph shows, with their own Default/Save buttons.
 With the history on, the dashboard tile shows the same graph instead of the usage ring.
+A bar below the graph shows the current usage, on both the settings page and the dashboard.
 
 Changing the size: Disable → change size → Create. There is no resize; creating a new
 swapfile replaces the old one (only possible while swap is disabled).

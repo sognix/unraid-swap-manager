@@ -71,9 +71,12 @@ selftest() {
 case "$1" in
   selftest) selftest ;;
   history)  history_apply ;;
+  recorded) recorded_active ;;   # exit code only: is swap active that this plugin enabled?
   state)    is_busy && echo "busy=yes" || echo "busy=no"
             if ( load ) 2>/dev/null; then
-              load; is_active && echo "swap=active" || echo "swap=inactive"; is_created && echo "file=present" || echo "file=missing"
+              # recorded_active: swap that no longer matches the cfg must still be shown as active,
+              # otherwise Disable is greyed out and Enable offers a second swap
+              load; { is_active || recorded_active; } && echo "swap=active" || echo "swap=inactive"; is_created && echo "file=present" || echo "file=missing"
             else   # cfg not loadable (e.g. location not mounted): only what is known without it
               recorded_active && echo "swap=active" || echo "swap=inactive"; echo "file=missing"
             fi ;;
@@ -85,5 +88,5 @@ case "$1" in
   create|on|delete) echo "== $(date '+%F %T') $1"; trap 'rm -f "$DATA/pending" "$DATA/create.pid"' EXIT; load; lock; "$1" ;;
   # off needs no load(): it uses $DATA/active, so it works with a broken cfg or a stopped array
   off)      echo "== $(date '+%F %T') off"; trap 'rm -f "$DATA/pending"' EXIT; lock; off ;;
-  *) echo "usage: swapctl.sh status|create|on|off|delete|autostart|autostop|history|selftest"; exit 1 ;;
+  *) echo "usage: swapctl.sh status|state|recorded|create|on|off|delete|autostart|autostop|history|selftest"; exit 1 ;;
 esac

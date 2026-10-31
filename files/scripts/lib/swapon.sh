@@ -86,6 +86,10 @@ delete() {
 
 on() {
   is_created || die "swapfile does not exist - create it first"
+  # $DATA/active holds one device only: a second swap would never be turned off at array stop
+  if recorded_active && ! is_active; then
+    die "another swap is active ($(cat "$DATA/active")) - disable it first"
+  fi
   if ! is_active; then
     tmp_warn
     [ "$FS" = zfs ] || mover_check
