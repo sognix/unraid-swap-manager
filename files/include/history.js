@@ -76,8 +76,21 @@ function swapHistory(chart, opts) {
            '<div class="swaphtip" style="position:absolute; top:0; display:none; pointer-events:none; white-space:nowrap; padding:4px 8px;' +
            ' font-size:12px; border-radius:4px; background:var(--background-color, #fff); color:var(--text-color);' +
            ' border:1px solid rgba(128,128,128,0.4); box-shadow:0 2px 6px rgba(0,0,0,0.2);"></div>';
-    box.html(svg);
+    box.html(svg + usageBar(g));
     if (st.mouse) hover(st.mouse); // keep the tooltip across the refresh
+  }
+
+  // current usage below the graph, styled like the CPU load bar of the dashboard (same colors
+  // and the thresholds of Settings > Display Settings); the bar starts where the plot starts
+  function usageBar(g) {
+    var d = st.data, pct = d.total ? Math.round(d.used / d.total * 100) : 0;
+    var txt = d.total ? swapHuman(d.used) + ' / ' + swapHuman(d.total) : 'no swap active';
+    var alert = d.critical > 0 && pct >= d.critical ? '#f0000c' : (d.warning > 0 && pct >= d.warning ? '#e68a00' : '');
+    return '<div style="display:flex; align-items:center; gap:6px; margin:8px ' + g.R + 'px 14px 0; font-size:12px;">' +
+           '<span style="width:' + (g.L - 6) + 'px; flex:none; text-align:right; color:' + (alert || '#4f8a10') + ';">' + pct + '%</span>' +
+           '<div style="flex:1; height:12px; background:var(--usage-disk-background-color, rgba(128,128,128,0.3));">' +
+           '<div style="height:100%; width:' + pct + '%; background:' + (alert || 'var(--gray-400, #909090)') + ';"></div></div>' +
+           '<span style="white-space:nowrap;">' + txt + '</span></div>';
   }
 
   // crosshair + tooltip: nearest sample to the pointer
@@ -85,7 +98,7 @@ function swapHistory(chart, opts) {
     st.mouse = e;
     var d = st.data; if (!d || !d.points.length) return;
     var g = geom(), mx = e.pageX - box.offset().left, best = null;
-    if (mx < g.L || mx > g.W - g.R) return leave();
+    if (mx < g.L || mx > g.W - g.R || e.pageY - box.offset().top > g.H) return leave(); // below the graph: usage bar
     d.points.forEach(function(p) { if (!best || Math.abs(g.x(p[0]) - mx) < Math.abs(g.x(best[0]) - mx)) best = p; });
     var px = g.x(best[0]), py = g.y(best[1]);
     box.find('.swaphx').attr({x1: px, x2: px, visibility: 'visible'});
