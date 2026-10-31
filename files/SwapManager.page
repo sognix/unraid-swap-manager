@@ -97,12 +97,9 @@ _(vm.swappiness, 0-200)_:
 
 > Kernel setting vm.swappiness (0-200): how eagerly the kernel moves memory
 > pages to swap. A low value like 10 keeps swap as an emergency buffer, higher
-> values swap out more aggressively. The buttons below the field reset it to
-> the default (10) or save and apply it immediately. The value is set whenever
-> this plugin enables swap.
-
-<input type="button" value="_(Default)_" onclick="swapSwappinessDefault()">
-: <input type="button" value="_(Save swappiness)_" onclick="swapSwappiness()">
+> values swap out more aggressively. Save swappiness at the end of this section
+> saves and applies it immediately. The value is set whenever this plugin enables
+> swap.
 
 _(Binding)_:
 : <select name="#bind_mode">
@@ -114,6 +111,17 @@ _(Binding)_:
 > pools where the kernel refuses a direct swapfile; it bypasses the check but
 > not the reason behind it and carries a stall risk under memory pressure -
 > see the full warning below.
+
+> Default fills all fields of this section with their default values without
+> saving them: Save swappiness stores the swappiness, Create swapfile the others.
+
+<input type="button" value="_(Default)_" onclick="swapSettingsDefault()">
+: <input type="button" value="_(Save swappiness)_" onclick="swapSwappiness()">
+
+&nbsp;
+: <span style="display:flex; flex-wrap:wrap; gap:8px;"><input type="button" id="btn-create" value="_(Create swapfile)_" onclick="swapAction('create')"><input type="button" id="btn-on" value="_(Enable)_" onclick="swapAction('on')" disabled><input type="button" id="btn-off" value="_(Disable)_" onclick="swapAction('off')" disabled><input type="button" id="btn-delete" value="_(Delete swapfile)_" onclick="swapAction('delete')" disabled></span>
+
+<p id="swapmsg" style="font-size:2.5rem; font-weight:600; margin:12px 0 0; text-align:center">&nbsp;</p>
 
 ## History Settings
 
@@ -157,13 +165,7 @@ _(Graph range)_:
 : <input type="button" value="_(Save history settings)_" onclick="swapHistorySave()">
 </form>
 
-<div style="text-align:center; margin:12px 0;">
-<input type="button" id="btn-create" value="_(Create swapfile)_" onclick="swapAction('create')">
-<input type="button" id="btn-on" value="_(Enable)_" onclick="swapAction('on')" disabled>
-<input type="button" id="btn-off" value="_(Disable)_" onclick="swapAction('off')" disabled>
-<input type="button" id="btn-delete" value="_(Delete swapfile)_" onclick="swapAction('delete')" disabled>
-<p id="swapmsg" style="font-size:2.5rem; font-weight:600; margin:12px 0 0; text-align:center">&nbsp;</p>
-</div>
+<p id="swaphistmsg" style="font-size:2.5rem; font-weight:600; margin:12px 0 0; text-align:center">&nbsp;</p>
 
 <!-- always rendered, hidden while the history is off: Save shows/hides it without a reload -->
 <div id="swaphist" style="margin:12px 0;<?=($cfg['history'] ?? 'yes') === 'yes' ? '' : ' display:none;'?>">
@@ -201,8 +203,8 @@ var swapRunning = null; // action currently running in the background
 
 function swapStatus() { $.post(swapAjax, {action: 'status'}, function(r) { $('#swapstatus').text(r); }); }
 
-function swapMsg(text, ok) {
-  $('#swapmsg').text(text).css('color', ok === undefined ? '' : (ok ? '#2e7d32' : '#c0392b'));
+function swapMsg(text, ok, el) {
+  $(el || '#swapmsg').text(text).css('color', ok === undefined ? '' : (ok ? '#2e7d32' : '#c0392b'));
 }
 
 function swapButtons(r) {
@@ -237,7 +239,15 @@ function swapDone(a, r) {
   swapStatus();
 }
 
-function swapSwappinessDefault() { $('input[name="#swappiness"]').val('10'); }
+var swapDefaults = <?=json_encode(@parse_ini_file("/usr/local/emhttp/plugins/$plugin/default.cfg") ?: [])?>;
+function swapFillDefaults(keys) {
+  keys.forEach(function(k) { $('[name="#' + k + '"]').val(swapDefaults[k]); });
+}
+// Default only fills in the values, nothing is stored until Save swappiness or Create swapfile
+function swapSettingsDefault() {
+  swapFillDefaults(['size_gb', 'location', 'name', 'fs', 'zpool', 'swappiness', 'bind_mode']);
+  $('select[name="#bind_mode"]').trigger('change'); // updates the loop mode warning
+}
 function swapSwappiness() { // the swappiness field has its own save button - the only writer for this value
   $.post(swapAjax, {action: 'swappiness', swappiness: $('input[name="#swappiness"]').val()},
     function(r) { swapMsg(r, !/invalid|Error/i.test(r)); })
@@ -245,23 +255,22 @@ function swapSwappiness() { // the swappiness field has its own save button - th
 }
 // the history fields have their own buttons, like swappiness: Default only fills in the
 // defaults, Save stores them and restarts/stops the sampler
-var swapHistDefaults = <?=json_encode(array_intersect_key(@parse_ini_file("/usr/local/emhttp/plugins/$plugin/default.cfg") ?: [], array_flip(['history','history_interval','history_range'])))?>;
 var swapHistGraph = null;
 function swapHistoryDefault() {
-  $.each(swapHistDefaults, function(k, v) { $('[name="#' + k + '"]').val(v); });
+  swapFillDefaults(['history', 'history_interval', 'history_range']);
 }
 function swapHistorySave() {
   var data = {action: 'history_settings'};
   ['history', 'history_interval', 'history_range'].forEach(function(k) { data[k] = $('[name="#' + k + '"]').val(); });
   $.post(swapAjax, data, function(r) {
-    swapMsg(r, true);
+    swapMsg(r, true, '#swaphistmsg');
     $('#swaphistint').text(data.history_interval);
     $('#swaphist').toggle(data.history === 'yes');
     if (data.history === 'yes') {
       if (swapHistGraph) swapHistGraph.range(+data.history_range);
       else swapHistGraph = swapHistory('#swaphistchart', {height: 160, range: +data.history_range});
     }
-  }).fail(function(x) { swapMsg(x.responseText || 'Error ' + x.status, false); });
+  }).fail(function(x) { swapMsg(x.responseText || 'Error ' + x.status, false, '#swaphistmsg'); });
 }
 function swapAction(a) {
   var data = {action: a};

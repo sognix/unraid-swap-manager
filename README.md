@@ -23,7 +23,7 @@ Questions, bugs and feature requests: [GitHub issues](https://github.com/sognix/
 ## Usage
 
 Settings → User Utilities → Swap Manager: set size/path/filesystem, "Create swapfile", then
-"Enable". Below the buttons a swap usage history graph (5 minutes / 1 hour / 24 hours,
+"Enable" (the buttons are at the end of Swap Settings). A swap usage history graph (5 minutes / 1 hour / 24 hours,
 kept in RAM) is configured under History Settings: on/off, sampling interval (seconds,
 minimum 5, default 30) and the range the graph shows, with their own Default/Save buttons.
 With the history on, the dashboard tile shows the same graph instead of the usage ring.
